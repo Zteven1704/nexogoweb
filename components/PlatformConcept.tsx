@@ -1,5 +1,6 @@
 import { Container } from "@/components/Container";
 import { SectionHeading } from "@/components/SectionHeading";
+import { SiteImage } from "@/components/SiteImage";
 import { conceptSteps } from "@/lib/site";
 
 export function PlatformConcept() {
@@ -45,6 +46,16 @@ export function PlatformConcept() {
             })}
           </ol>
         </div>
+
+        <figure className="mt-8 overflow-hidden rounded-3xl border border-line shadow-[0_24px_60px_-40px_rgba(10,35,66,0.45)]">
+          <div className="relative h-56 sm:h-72 lg:h-80">
+            <SiteImage
+              src="/images/plataforma-colaboracion.jpg"
+              alt="Varias personas trabajando a la vez con computadoras y documentos sobre una mesa."
+              sizes="(max-width: 1152px) calc(100vw - 3rem), 1152px"
+            />
+          </div>
+        </figure>
       </Container>
     </section>
   );

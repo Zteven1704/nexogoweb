@@ -84,26 +84,38 @@ export const sectors = [
   {
     name: "Clínicas",
     text: "La misma base reúne clientes, expedientes y documentos de la operación en un solo contexto.",
+    image: "/images/sector-clinicas.jpg",
+    imageAlt: "Profesional de la salud con bata y estetoscopio consultando un teléfono.",
   },
   {
     name: "Veterinarias",
     text: "Clientes, expedientes y documentos de la atención quedan organizados con esa estructura común.",
+    image: "/images/sector-veterinarias.jpg",
+    imageAlt: "Persona atendiendo a un gato en un espacio interior.",
   },
   {
     name: "Bodegas",
     text: "La operación usa la misma base para ordenar clientes, expedientes y documentos.",
+    image: "/images/sector-bodegas.jpg",
+    imageAlt: "Pasillo de una bodega con estanterías altas y mercancía.",
   },
   {
     name: "Consultorías",
     text: "El trabajo de consultoría se organiza con clientes, expedientes y documentos en la misma base.",
+    image: "/images/sector-consultorias.jpg",
+    imageAlt: "Dos profesionales en una reunión, con portátil y documentos sobre la mesa.",
   },
   {
     name: "Talleres",
     text: "Clientes, expedientes y documentos del servicio comparten la misma organización.",
+    image: "/images/sector-talleres.jpg",
+    imageAlt: "Persona trabajando con una herramienta en un taller.",
   },
   {
     name: "Empresas B2B",
     text: "Las relaciones entre empresas se apoyan en clientes, expedientes y documentos dentro de la misma base.",
+    image: "/images/sector-b2b.jpg",
+    imageAlt: "Dos profesionales conversando en una sala de reuniones, con un portátil sobre la mesa.",
   },
 ] as const;
 

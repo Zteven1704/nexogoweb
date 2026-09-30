@@ -1,6 +1,7 @@
 import { ButtonLink } from "@/components/ButtonLink";
 import { Container } from "@/components/Container";
 import { DashboardPreview } from "@/components/DashboardPreview";
+import { SiteImage } from "@/components/SiteImage";
 import { infoHref } from "@/lib/site";
 
 export function Hero() {
@@ -29,7 +30,20 @@ export function Hero() {
             </ButtonLink>
           </div>
         </div>
-        <DashboardPreview />
+        <div className="relative overflow-x-clip">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-3xl shadow-[0_24px_50px_-32px_rgba(10,35,66,0.55)] ring-1 ring-slate-900/5">
+            <SiteImage
+              src="/images/hero-tablet.jpg"
+              alt="Persona usando una tablet durante una reunión en una oficina moderna."
+              sizes="(max-width: 1024px) 100vw, 46vw"
+              preload
+              className="object-cover object-[center_35%]"
+            />
+          </div>
+          <div className="relative z-10 -mt-10 sm:-mt-16 lg:-mt-20">
+            <DashboardPreview />
+          </div>
+        </div>
       </Container>
     </section>
   );
