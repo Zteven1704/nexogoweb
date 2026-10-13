@@ -72,7 +72,13 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-4 md:flex lg:gap-5">
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-nexo-deep transition hover:text-nexo-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-nexo-blue"
+          >
+            Iniciar sesión
+          </Link>
           <ButtonLink href={infoHref}>Conocer NexoGo</ButtonLink>
         </div>
 
@@ -109,6 +115,15 @@ export function Navbar() {
                   </a>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/login"
+                  className="flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-base font-medium text-nexo-deep hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nexo-blue"
+                  onClick={closeMenu}
+                >
+                  Iniciar sesión
+                </Link>
+              </li>
             </ul>
           </nav>
           <div className="mt-3 px-3 pb-2">

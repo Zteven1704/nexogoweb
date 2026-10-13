@@ -6,7 +6,9 @@ export type IconName =
   | "badge"
   | "lock"
   | "building"
-  | "shield";
+  | "shield"
+  | "home"
+  | "settings";
 
 type IconProps = {
   name: IconName;
@@ -79,6 +81,15 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   shield: (
     <>
       <path d="M12 3.5 19 6.2v5.6c0 4.3-2.9 6.8-7 8.2-4.1-1.4-7-3.9-7-8.2V6.2Z" />
+    </>
+  ),
+  home: (
+    <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1Z" />
+  ),
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3.5v2.2M12 18.3V20.5M4.8 6.8l1.6 1.6M17.6 15.6l1.6 1.6M3.5 12h2.2M18.3 12h2.2M4.8 17.2l1.6-1.6M17.6 8.4l1.6-1.6" />
     </>
   ),
 };
