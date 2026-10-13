@@ -8,8 +8,9 @@ import {
   formatProfileError,
   getOwnProfile,
   legacyRoleLabel,
-  profilePhotoBlockedReason,
+  profilePhotoRejection,
   saveOwnProfile,
+  uploadOwnProfilePhoto,
   type UserProfile,
 } from "@/lib/profile";
 
@@ -21,6 +22,9 @@ const fieldClass =
 
 const primaryButtonClass =
   "inline-flex h-11 items-center justify-center rounded-full bg-nexo-deep px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#16345c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nexo-blue disabled:cursor-not-allowed disabled:opacity-60";
+
+const photoButtonClass =
+  "mt-3 inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-line bg-white px-4 text-sm font-semibold text-nexo-deep transition hover:bg-slate-50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-nexo-blue";
 
 type ProfileLoad =
   | { status: "loading" }
@@ -62,7 +66,20 @@ export function PerfilScreen() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoNotice, setPhotoNotice] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const savingRef = useRef(false);
+  const photoPreviewRef = useRef("");
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewRef.current) {
+        URL.revokeObjectURL(photoPreviewRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (session.status !== "authenticated") {
@@ -131,7 +148,44 @@ export function PerfilScreen() {
   const email = session.user.email?.trim() || (load.status === "ready" ? load.profile.correo : "");
   const profile = load.status === "ready" ? load.profile : null;
   const dirty = !sameDraft(draft, baseline);
-  const photoUrl = profile?.profileImageUrl ?? "";
+  const photoUrl = photoPreview || profile?.profileImageUrl || "";
+
+  function replacePhotoPreview(nextUrl: string) {
+    if (photoPreviewRef.current) {
+      URL.revokeObjectURL(photoPreviewRef.current);
+    }
+    photoPreviewRef.current = nextUrl;
+    setPhotoPreview(nextUrl);
+  }
+
+  async function onPhotoSelected(file: File) {
+    if (session.status !== "authenticated" || photoUploading) {
+      return;
+    }
+
+    const rejection = profilePhotoRejection(file);
+    setPhotoNotice("");
+    setPhotoError("");
+    if (rejection) {
+      setPhotoError(rejection);
+      return;
+    }
+
+    replacePhotoPreview(URL.createObjectURL(file));
+    setPhotoUploading(true);
+
+    try {
+      const saved = await uploadOwnProfilePhoto(session.user.uid, file);
+      replacePhotoPreview("");
+      setLoad({ status: "ready", profile: saved });
+      setPhotoNotice("Foto actualizada.");
+    } catch (error) {
+      replacePhotoPreview("");
+      setPhotoError(formatProfileError(error, "No se pudo guardar la foto."));
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -179,15 +233,42 @@ export function PerfilScreen() {
         <div className="flex items-center gap-4">
           <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-blue-50 text-nexo-blue">
             {photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- profileImageUrl is a remote Firebase URL
-              <img src={photoUrl} alt="" className="size-full object-cover" />
+              // eslint-disable-next-line @next/next/no-img-element -- profileImageUrl is a remote Firebase URL or a local preview
+              <img src={photoUrl} alt="Foto de perfil" className="size-full object-cover" />
             ) : (
               <Icon name="user" className="size-8" />
             )}
           </span>
           <div className="min-w-0">
             <h2 className="text-lg font-semibold text-nexo-deep">Foto</h2>
-            <p className="mt-1 text-sm leading-6 text-muted">{profilePhotoBlockedReason}</p>
+            <p className="mt-1 text-sm leading-6 text-muted">JPEG, PNG o WebP, de menos de 10 MB.</p>
+            <label className={`${photoButtonClass} ${photoUploading ? "pointer-events-none opacity-60" : ""}`}>
+              {photoUploading ? "Guardando foto" : "Cambiar foto"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={photoUploading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) {
+                    void onPhotoSelected(file);
+                  }
+                }}
+              />
+            </label>
+            {photoUploading ? (
+              <p className="mt-2 text-sm text-muted" role="status">
+                Guardando foto
+              </p>
+            ) : null}
+            {photoNotice ? <p className="mt-2 text-sm font-medium text-nexo-cyan">{photoNotice}</p> : null}
+            {photoError ? (
+              <p role="alert" className="mt-2 text-sm leading-6 text-red-700">
+                {photoError}
+              </p>
+            ) : null}
           </div>
         </div>
       </article>

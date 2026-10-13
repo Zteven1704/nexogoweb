@@ -1,14 +1,12 @@
 import { FirebaseError } from "firebase/app";
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
-import { getFirebaseFirestore } from "@/lib/firebase";
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import { getFirebaseApp, getFirebaseAuth, getFirebaseFirestore } from "@/lib/firebase";
 
-/**
- * Android writes profile photos to profile_images/{uid}.jpg.
- * Current Storage rules only allow users/{userId}/profile/{fileName}
- * and deny every other path. Web must not upload until those rules match.
- */
-export const profilePhotoBlockedReason =
-  "La foto no se puede cambiar desde la web: las reglas de Storage no permiten profile_images/{uid}.jpg.";
+/** Android and the web store the profile photo at profile_images/{uid}.jpg. */
+export const profilePhotoMaxBytes = 10 * 1024 * 1024;
+
+const profilePhotoTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 
 export type UserProfile = {
   uid: string;
@@ -178,6 +176,116 @@ export async function saveOwnProfile(input: {
   const saved = await getDoc(ref);
   if (!saved.exists()) {
     throw new ProfileError("No se pudo guardar el perfil.");
+  }
+
+  return mapProfile(saved.id, saved.data());
+}
+
+export function profilePhotoRejection(file: File): string | null {
+  const type = file.type.toLowerCase();
+  if (!profilePhotoTypes.has(type)) {
+    return "Elige una imagen JPEG, PNG o WebP.";
+  }
+
+  if (file.size <= 0 || file.size >= profilePhotoMaxBytes) {
+    return "La imagen debe pesar menos de 10 MB.";
+  }
+
+  return null;
+}
+
+function isJpeg(file: File): boolean {
+  const type = file.type.toLowerCase();
+  return type === "image/jpeg" || type === "image/jpg";
+}
+
+async function fileToJpeg(file: File): Promise<Blob> {
+  if (isJpeg(file)) {
+    return file;
+  }
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new ProfileError("No se pudo leer la imagen.");
+  }
+
+  const maxEdge = 2048;
+  const longest = Math.max(bitmap.width, bitmap.height);
+  const scale = longest > maxEdge ? maxEdge / longest : 1;
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    bitmap.close();
+    throw new ProfileError("No se pudo preparar la imagen.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.92);
+  });
+  if (!blob || blob.size <= 0) {
+    throw new ProfileError("No se pudo convertir la imagen a JPEG.");
+  }
+  if (blob.size >= profilePhotoMaxBytes) {
+    throw new ProfileError("La imagen debe pesar menos de 10 MB.");
+  }
+
+  return blob;
+}
+
+export async function uploadOwnProfilePhoto(uid: string, file: File): Promise<UserProfile> {
+  const rejection = profilePhotoRejection(file);
+  if (rejection) {
+    throw new ProfileError(rejection);
+  }
+
+  const currentUser = getFirebaseAuth().currentUser;
+  const userId = uid.trim();
+  if (!currentUser || !userId || currentUser.uid !== userId) {
+    throw new ProfileError("No hay una sesión activa.");
+  }
+
+  const profile = profileRef(userId);
+  const existing = await getDoc(profile);
+  if (!existing.exists()) {
+    throw new ProfileError("Guarda primero el nombre y el teléfono. Después podrás cambiar la foto.");
+  }
+
+  const jpeg = await fileToJpeg(file);
+  const storageRef = ref(getStorage(getFirebaseApp()), `profile_images/${currentUser.uid}.jpg`);
+
+  let downloadUrl = "";
+  try {
+    await uploadBytes(storageRef, jpeg, { contentType: "image/jpeg" });
+    downloadUrl = await getDownloadURL(storageRef);
+  } catch (error) {
+    if (error instanceof FirebaseError && error.code === "storage/unauthorized") {
+      throw new ProfileError("No tienes permiso para cambiar la foto.");
+    }
+    if (error instanceof FirebaseError && error.code === "storage/unauthenticated") {
+      throw new ProfileError("Tu sesión expiró. Vuelve a iniciar sesión.");
+    }
+    throw error;
+  }
+
+  await updateDoc(profile, {
+    profileImageUrl: downloadUrl,
+    fechaActualizacion: serverTimestamp(),
+  });
+
+  const saved = await getDoc(profile);
+  if (!saved.exists()) {
+    throw new ProfileError("No se pudo guardar la foto en el perfil.");
   }
 
   return mapProfile(saved.id, saved.data());
